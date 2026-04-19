@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Maven项目的根元素，声明了POM的命名空间和XML Schema实例，用于验证POM文件的格式 -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<!-- POM模型的版本，Maven 3.x 必须使用 4.0.0 -->
+	<modelVersion>4.0.0</modelVersion>
+
+	<!-- 父项目配置，继承Spring Boot的默认依赖管理和插件配置 -->
+	<parent>
+		<!-- 父项目的组织标识 -->
+		<groupId>org.springframework.boot</groupId>
+		<!-- 父项目的构件标识 -->
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<!-- 父项目的版本 -->
+		<version>3.2.5</version>
+		<!-- 父项目POM文件的相对路径，空值表示从Maven仓库查找父项目 -->
+		<relativePath/>
+	</parent>
+
+	<!-- 本项目的组织标识，通常使用公司或组织的域名倒序 -->
+	<groupId>com.csust</groupId>
+	<!-- 本项目的构件标识，项目的唯一名称 -->
+	<artifactId>eco-exchange</artifactId>
+	<!-- 本项目的版本，SNAPSHOT表示快照版本，处于开发中 -->
+	<version>0.0.1-SNAPSHOT</version>
+	<!-- 项目的名称，用于展示 -->
+	<name>eco-exchange</name>
+	<!-- 项目的描述，说明项目的用途 -->
+	<description>CSUST Second-hand Trading Platform</description>
+
+	<!-- 自定义属性，可在POM其他地方通过${属性名}引用 -->
+	<properties>
+		<!-- 指定项目使用的Java版本为21 -->
+		<java.version>21</java.version>
+	</properties>
+
+	<!-- 项目依赖配置，定义项目所需的所有依赖 -->
+	<dependencies>
+		<!-- Spring Boot Web启动器，包含Spring MVC、Tomcat等Web开发所需依赖 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
+		<!--引入了 AOP 依赖以暴露代理对象-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-aop</artifactId>
+		</dependency>
+
+		<!-- MySQL数据库驱动，用于连接MySQL数据库，scope为runtime表示仅在运行时需要 -->
+		<dependency>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- Lombok，通过注解简化Java代码（如自动生成getter/setter），optional为true表示不传递给依赖该项目的其他项目 -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- Spring Boot测试启动器，包含JUnit、Mockito等测试框架，scope为test表示仅在测试时使用 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- MyBatis Plus的Spring Boot 3启动器，简化数据库操作，提供CRUD等功能 -->
+		<dependency>
+			<groupId>com.baomidou</groupId>
+			<artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+			<version>3.5.5</version>
+		</dependency>
+
+		<!-- Sa-Token的Spring Boot 3启动器，用于权限认证、登录等安全功能 -->
+		<dependency>
+			<groupId>cn.dev33</groupId>
+			<artifactId>sa-token-spring-boot3-starter</artifactId>
+			<version>1.37.0</version>
+		</dependency>
+
+		<!--引入 Redisson 依赖-->
+		<dependency>
+			<groupId>org.redisson</groupId>
+			<artifactId>redisson-spring-boot-starter</artifactId>
+			<version>3.27.2</version>
+		</dependency>
+
+		<!-- MyBatis Plus代码生成器，用于自动生成实体类、Mapper等代码，scope为test -->
+		<dependency>
+			<groupId>com.baomidou</groupId>
+			<artifactId>mybatis-plus-generator</artifactId>
+			<version>3.5.15</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- FreeMarker模板引擎，代码生成器使用的模板引擎，scope为test -->
+		<dependency>
+			<groupId>org.freemarker</groupId>
+			<artifactId>freemarker</artifactId>
+			<version>2.3.32</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Hutool 工具库, 使用它的 DigestUtil 进行密码的 MD5 加密-->
+		<dependency>
+			<groupId>cn.hutool</groupId>
+			<artifactId>hutool-all</artifactId>
+			<version>5.8.25</version>
+		</dependency>
+
+
+
+	</dependencies>
+
+	<!-- 项目构建配置，定义编译、打包等构建过程的插件 -->
+	<build>
+		<plugins>
+			<!-- Spring Boot Maven插件，用于打包可执行JAR/WAR，以及运行项目 -->
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<!-- 插件配置 -->
+				<configuration>
+					<!-- 打包时排除Lombok，因为Lombok是编译时注解处理器，不需要包含在最终包中 -->
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

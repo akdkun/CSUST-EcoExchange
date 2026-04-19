@@ -1,0 +1,42 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: eco-exchange
+  datasource:
+    # 显式指定 HikariCP 数据库连接池
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 补充了 useSSL=false 和 allowPublicKeyRetrieval=true
+    url: jdbc:mysql://127.0.0.1:3306/csust_eco_exchange?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: YOUR_DATABASE_PASSWORD_HERE
+
+mybatis-plus:
+  # 核心补充: 告诉框架去哪里寻找 XML 映射文件
+  mapper-locations: classpath*:/mapper/**/*.xml
+  # 核心补充: 实体类所在的包, 方便 XML 中直接使用短类名
+  type-aliases-package: com.csust.eco.entity
+  configuration:
+    # 开启驼峰命名自动映射 (如数据库的 create_time 映射为 Java 的 createTime)
+    map-underscore-to-camel-case: true
+    # 打印 SQL 日志, 观察底层执行计划
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# Sa-Token 配置
+sa-token:
+  # token 名称 (同时也是 cookie 名称)
+  token-name: Authorization
+  # token 有效期，单位s 默认30天, -1代表永不过期
+  timeout: 2592000
+  # token 临时有效期 (指定时间内无操作就临时过期) 单位: 秒
+  active-timeout: -1
+  # 是否允许同一账号并发登录 (为 true 时允许一起登录, 为 false 时新登录挤掉旧登录)
+  is-concurrent: true
+  # 在多人登录同一账号时，是否共用一个 token (为 true 时所有登录共用一个 token, 为 false 时每次登录新建一个 token)
+  is-share: true
+  # token 风格 (此处使用简短的 uuid)
+  token-style: uuid
+  # 是否输出操作日志
+  is-log: false
