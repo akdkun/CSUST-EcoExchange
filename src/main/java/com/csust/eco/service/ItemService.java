@@ -13,5 +13,11 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * @since 2026-04-16
  */
 public interface ItemService extends IService<Item> {
-    void publish(ItemPublishDTO publishDTO);
+    /**
+     * 发布二手商品
+     * @param publishDTO 商品信息传输对象
+     * @param sellerId   卖家ID (由 Controller 层安全提取)
+     * @return 插入成功后的商品主键ID
+     */
+    Long publish(ItemPublishDTO publishDTO, Long sellerId);
 }

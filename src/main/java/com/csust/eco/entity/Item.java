@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -11,6 +12,7 @@ import lombok.ToString;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * <p>
@@ -23,7 +25,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
-@TableName("item")
+@TableName(value = "item", autoResultMap = true)
 public class Item implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -81,4 +83,16 @@ public class Item implements Serializable {
      */
     @TableField("update_time")
     private LocalDateTime updateTime;
+
+    /**
+     * 主图URL
+     */
+    @TableField("main_image")
+    private String mainImage;
+
+    /**
+     * 详情图URL数组, 显式指定 JacksonTypeHandler
+     */
+    @TableField(value = "detail_images", typeHandler = JacksonTypeHandler.class)
+    private List<String> detailImages;
 }

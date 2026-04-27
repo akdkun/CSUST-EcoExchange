@@ -22,4 +22,12 @@ public class Result<T> {
         result.setMessage(message);
         return result;
     }
+
+    public static <T> Result<T> error(String message) {
+        Result<T> result = new Result<>();
+        // 400 代表 Bad Request, 适合用于参数校验未通过的场景
+        result.setCode(400);
+        result.setMessage(message);
+        return result;
+    }
 }

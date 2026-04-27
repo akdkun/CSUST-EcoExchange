@@ -1,6 +1,5 @@
 package com.csust.eco.service.impl;
 
-import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.csust.eco.dto.ItemPublishDTO;
 import com.csust.eco.entity.Item;
@@ -13,23 +12,29 @@ import org.springframework.transaction.annotation.Transactional;
 public class ItemServiceImpl extends ServiceImpl<ItemMapper, Item> implements ItemService {
 
     @Override
-    @Transactional // 习惯性加上事务注解，保证数据完整性
-    public void publish(ItemPublishDTO publishDTO) {
+    @Transactional(rollbackFor = Exception.class)
+    public Long publish(ItemPublishDTO publishDTO, Long sellerId) { // 接收外部传入的卖家 ID
 
-        // 1. 从 Sa-Token 上下文中安全获取当前登录用户的 ID (即卖家 ID)
-        long currentUserId = StpUtil.getLoginIdAsLong();
-
-        // 2. 将 DTO 转换为 Entity
+        // 将 DTO 转换为 Entity
         Item item = new Item();
-        item.setSellerId(currentUserId);
+
+        // 直接使用外部传入的已鉴权身份
+        item.setSellerId(sellerId);
+
         item.setTitle(publishDTO.getTitle());
         item.setDescription(publishDTO.getDescription());
         item.setPrice(publishDTO.getPrice());
 
-        // 数据库默认值：stock = 1, status = 0 (待售), 时间自动生成
-        // 所以我们不需要手动设置这些字段。
+        // 映射图片字段
+        item.setMainImage(publishDTO.getMainImage());
+        item.setDetailImages(publishDTO.getDetailImages());
 
-        // 3. 执行入库
+        item.setStock(1);
+        item.setStatus((byte) 0);
+
+        // 执行入库
         this.save(item);
+
+        return item.getId();
     }
 }

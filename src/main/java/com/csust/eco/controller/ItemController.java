@@ -1,5 +1,6 @@
 package com.csust.eco.controller;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.csust.eco.common.Result;
 import com.csust.eco.dto.ItemPublishDTO;
 import com.csust.eco.service.ItemService;
@@ -25,8 +26,13 @@ public class ItemController {
     private ItemService itemService;
 
     @PostMapping("/publish")
-    public Result<String> publish(@Validated @RequestBody ItemPublishDTO publishDTO) {
-        itemService.publish(publishDTO);
-        return Result.success("商品发布成功");
+    public Result<Long> publish(@Validated @RequestBody ItemPublishDTO publishDTO) {
+        // 1. 在 Controller 提取当前操作用户的身份上下文
+        long currentUserId = StpUtil.getLoginIdAsLong();
+
+        // 2. 将干净的数据和身份传递给 Service 进行纯逻辑运算
+        Long itemId = itemService.publish(publishDTO, currentUserId);
+
+        return Result.success(itemId);
     }
 }

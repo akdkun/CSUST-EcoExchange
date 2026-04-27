@@ -3,8 +3,10 @@ package com.csust.eco.dto;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 public class ItemPublishDTO {
@@ -18,6 +20,9 @@ public class ItemPublishDTO {
     @DecimalMin(value = "0.01", message = "价格必须大于0")
     private BigDecimal price;
 
-    // 注意：目前技术栈基准清单中提到，图片上传功能将通过 MinIO/OSS 实现，
-    // 所以这里的 DTO 暂时不包含图片 URL 字段。我们先实现核心的纯文本发布逻辑。
+    @NotBlank(message = "商品主图不能为空, 请先上传图片")
+    private String mainImage;
+    
+    @Size(max = 9, message = "详情图最多只能上传9张")
+    private List<String> detailImages;
 }
