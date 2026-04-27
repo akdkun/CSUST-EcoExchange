@@ -15,8 +15,9 @@ public class SaTokenConfigure implements WebMvcConfigurer {
         registry.addInterceptor(new SaInterceptor(handle -> StpUtil.checkLogin()))
                 .addPathPatterns("/**") // 拦截所有接口请求
                 .excludePathPatterns(   // 配置白名单 (不需要登录就能访问的接口)
-                        "/user/login",
-                        "/user/register",
+                        "/api/user/login",
+                        "/api/user/register",
+                        "/api/item/page",
                         "/favicon.ico",  // 排除浏览器默认图标请求
                         "/doc.html",     // 如果后续集成 Knife4j，需要排除接口文档路由
                         "/webjars/**",

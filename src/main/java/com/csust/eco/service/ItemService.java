@@ -1,8 +1,11 @@
 package com.csust.eco.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.csust.eco.dto.ItemPublishDTO;
+import com.csust.eco.dto.ItemQueryDTO;
 import com.csust.eco.entity.Item;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.csust.eco.vo.ItemListVO;
 
 /**
  * <p>
@@ -20,4 +23,5 @@ public interface ItemService extends IService<Item> {
      * @return 插入成功后的商品主键ID
      */
     Long publish(ItemPublishDTO publishDTO, Long sellerId);
+    Page<ItemListVO> queryItemPage(ItemQueryDTO dto);
 }
