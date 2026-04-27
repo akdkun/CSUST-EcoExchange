@@ -19,7 +19,7 @@ public class GlobalExceptionHandler {
     public Result<Void> handleNotLoginException(NotLoginException e) {
         log.warn("拦截到未登录请求: {}", e.getMessage());
         // 401 状态码代表 Unauthorized (未授权)
-        return Result.error(401, "身份已过期或未登录，请先登录");
+        return Result.failed(ResultCode.UNAUTHORIZED);
     }
 
     /**
@@ -37,7 +37,7 @@ public class GlobalExceptionHandler {
 
         log.warn("参数校验未通过: {}", errorMessage.toString());
         // 400 状态码代表 Bad Request (客户端请求错误)
-        return Result.error(400, errorMessage.toString());
+        return Result.failed(ResultCode.VALIDATE_FAILED, errorMessage.toString());
     }
 
     /**
@@ -48,6 +48,6 @@ public class GlobalExceptionHandler {
         // 真实的报错堆栈只打印在后端日志中，供开发者排查
         log.error("系统内部发生未知异常: ", e);
         // 统一返回友好的模糊提示语，状态码 500 代表 Server Error
-        return Result.error(500, "系统繁忙，请稍后再试");
+        return Result.failed(ResultCode.FAILED, "系统繁忙，请稍后再试");
     }
 }

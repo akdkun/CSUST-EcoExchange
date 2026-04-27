@@ -4,6 +4,7 @@ import com.csust.eco.common.Result;
 import com.csust.eco.dto.UserLoginDTO;
 import com.csust.eco.dto.UserRegisterDTO;
 import com.csust.eco.service.UserService;
+import com.csust.eco.vo.UserInfoVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -34,7 +35,7 @@ public class UserController {
 
     @PostMapping("/login")
     public Result<String> login(@Validated @RequestBody UserLoginDTO loginDTO) {
-        String token = userService.login(loginDTO);
+        UserInfoVO token = userService.login(loginDTO);
         return Result.success(token);
     }
 

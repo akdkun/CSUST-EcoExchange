@@ -1,6 +1,7 @@
 package com.csust.eco.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.csust.eco.dto.UserLoginDTO;
@@ -9,6 +10,7 @@ import com.csust.eco.entity.User;
 import com.csust.eco.mapper.UserMapper;
 import com.csust.eco.service.UserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.csust.eco.vo.UserInfoVO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,7 +49,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional
-    public String login(UserLoginDTO loginDTO) {
+    public UserInfoVO login(UserLoginDTO loginDTO) { // 修改点 1: 返回值改为 UserInfoVO
         // 1. 根据学号查询用户
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(User::getStudentId, loginDTO.getStudentId());
@@ -57,17 +59,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new RuntimeException("用户不存在");
         }
 
-        // 2. 校验密码 (将传入的明文加密后与数据库比对)
+        // 2. 校验密码
         String inputEncrypted = DigestUtil.md5Hex(loginDTO.getPassword());
         if (!user.getPassword().equals(inputEncrypted)) {
             throw new RuntimeException("密码错误");
         }
 
-        // 3. 密码正确，执行 Sa-Token 登录 (核心逻辑)
-        // 底层逻辑: Sa-Token 会将当前 userId 存入内部维护的 Token 映射表中, 并生成一个 uuid Token
+        // 3. 密码正确，执行 Sa-Token 登录
         StpUtil.login(user.getId());
 
-        // 4. 返回生成的 Token 给前端
-        return StpUtil.getTokenValue();
+        // 4. 构建 VO (安全隔离层)
+        UserInfoVO userInfoVO = new UserInfoVO();
+        // 将 Entity 中的同名属性 (id, studentId, nickname, avatar) 自动拷贝到 VO 中
+        // 密码 (password) 字段在 VO 中不存在, 因此自动被丢弃, 实现了数据脱敏
+        BeanUtil.copyProperties(user, userInfoVO);
+
+        // 5. 将 Token 注入到 VO 中一并返回
+        userInfoVO.setTokenValue(StpUtil.getTokenValue());
+
+        return userInfoVO;
     }
 }
