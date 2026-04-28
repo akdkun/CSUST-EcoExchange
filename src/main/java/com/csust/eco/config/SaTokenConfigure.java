@@ -18,6 +18,7 @@ public class SaTokenConfigure implements WebMvcConfigurer {
                         "/api/user/login",
                         "/api/user/register",
                         "/api/item/page",
+                        "/api/item/*",
                         "/favicon.ico",  // 排除浏览器默认图标请求
                         "/doc.html",     // 如果后续集成 Knife4j，需要排除接口文档路由
                         "/webjars/**",

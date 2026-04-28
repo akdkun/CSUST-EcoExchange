@@ -6,6 +6,7 @@ import com.csust.eco.common.Result;
 import com.csust.eco.dto.ItemPublishDTO;
 import com.csust.eco.dto.ItemQueryDTO;
 import com.csust.eco.service.ItemService;
+import com.csust.eco.vo.ItemDetailVO;
 import com.csust.eco.vo.ItemListVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -34,6 +35,12 @@ public class ItemController {
         Long itemId = itemService.publish(publishDTO, currentUserId);
 
         return Result.success(itemId);
+    }
+
+    @GetMapping("/{id}")
+    public Result<ItemDetailVO> getDetail(@PathVariable Long id) {
+        ItemDetailVO detail = itemService.getItemDetail(id);
+        return Result.success(detail);
     }
 
     @GetMapping("/page")

@@ -11,16 +11,15 @@ public class ItemDetailVO {
     private String title;
     private String description;
     private BigDecimal price;
+    private Integer stock;
     private String mainImage;
-    // 详情页专属：反序列化后的详情图数组
+    // 关键点：对应数据库中的 JSON 字段，在 Java 中表现为 List
     private List<String> detailImages;
-
-    // 进阶扩展预留：由于是单表设计，前端在详情页需要展示卖家信息，
-    // 后续可以在 Service 层通过 sellerId 查询出卖家昵称和头像，组装到这个 VO 里返回。
-    private Long sellerId;
-    // private String sellerNickname;
-    // private String sellerAvatar;
-
-    private Integer status;
     private LocalDateTime createTime;
+
+    // 业务扩展点：返回卖家 ID，方便前端跳转“联系卖家”或“卖家主页”
+    private Long sellerId;
+
+    // 状态映射：0-待售, 1-交易中, 2-已售出, 3-已下架
+    private Integer status;
 }

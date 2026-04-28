@@ -10,6 +10,7 @@ import com.csust.eco.dto.ItemQueryDTO;
 import com.csust.eco.entity.Item;
 import com.csust.eco.mapper.ItemMapper;
 import com.csust.eco.service.ItemService;
+import com.csust.eco.vo.ItemDetailVO;
 import com.csust.eco.vo.ItemListVO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +46,25 @@ public class ItemServiceImpl extends ServiceImpl<ItemMapper, Item> implements It
         this.save(item);
 
         return item.getId();
+    }
+
+    @Override
+    public ItemDetailVO getItemDetail(Long id) {
+        // 1. 查询物理实体
+        Item item = this.getById(id);
+
+        // 2. 防御性校验：如果商品不存在或已下架，应及时反馈
+        if (item == null) {
+            throw new RuntimeException("商品已不存在");
+        }
+
+        // 3. 转换 VO
+        // 注意：由于我们在 Item 实体类上配置了 @TableName(autoResultMap = true)
+        // 并对 detail_images 字段使用了 JacksonTypeHandler，
+        // MyBatis-Plus 会自动完成从 MySQL JSON 字符串到 List<String> 的反序列化。
+        ItemDetailVO detailVO = BeanUtil.copyProperties(item, ItemDetailVO.class);
+
+        return detailVO;
     }
 
     @Override

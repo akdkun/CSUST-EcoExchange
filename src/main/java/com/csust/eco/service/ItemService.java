@@ -5,6 +5,7 @@ import com.csust.eco.dto.ItemPublishDTO;
 import com.csust.eco.dto.ItemQueryDTO;
 import com.csust.eco.entity.Item;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.csust.eco.vo.ItemDetailVO;
 import com.csust.eco.vo.ItemListVO;
 
 /**
@@ -23,5 +24,17 @@ public interface ItemService extends IService<Item> {
      * @return 插入成功后的商品主键ID
      */
     Long publish(ItemPublishDTO publishDTO, Long sellerId);
+    /**
+     * 根据id查询二手商品详细信息
+     * @param id 商品id
+     * @return 查询到的详细数据
+     */
+    ItemDetailVO getItemDetail(Long id);
+    /**
+     * 分页查询二手商品
+     * @param dto 商品信息集合
+     * @return 查询到的简略数据
+     */
     Page<ItemListVO> queryItemPage(ItemQueryDTO dto);
+
 }
