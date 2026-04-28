@@ -8,6 +8,8 @@ import com.csust.eco.dto.ItemQueryDTO;
 import com.csust.eco.service.ItemService;
 import com.csust.eco.vo.ItemDetailVO;
 import com.csust.eco.vo.ItemListVO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -20,12 +22,14 @@ import org.springframework.web.bind.annotation.*;
  * @author csust-dev
  * @since 2026-04-16
  */
+@Tag(name = "2. 商品导购与发布模块", description = "涵盖 C 端用户的商品浏览、分页查询以及卖家的商品发布逻辑")
 @RestController
 @RequestMapping("/api/item")
 public class ItemController {
     @Autowired
     private ItemService itemService;
 
+    @Operation(summary = "发布二手商品", description = "[需登录]卖家发布商品, 包含主图和详情图数据")
     @PostMapping("/publish")
     public Result<Long> publish(@Validated @RequestBody ItemPublishDTO publishDTO) {
         // 1. 在 Controller 提取当前操作用户的身份上下文
@@ -37,12 +41,14 @@ public class ItemController {
         return Result.success(itemId);
     }
 
+    @Operation(summary = "获取商品详情", description = "[游客可用]根据商品主键 ID 查询完整信息(含多图数组)")
     @GetMapping("/{id}")
     public Result<ItemDetailVO> getDetail(@PathVariable Long id) {
         ItemDetailVO detail = itemService.getItemDetail(id);
         return Result.success(detail);
     }
 
+    @Operation(summary = "商品分页列表", description = "[游客可用]首页瀑布流查询，支持模糊搜索，按发布时间倒序")
     @GetMapping("/page")
     public Result<Page<ItemListVO>> pageQuery(@Validated ItemQueryDTO dto) {
         Page<ItemListVO> result = itemService.queryItemPage(dto);

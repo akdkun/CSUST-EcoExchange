@@ -124,6 +124,12 @@
 			<artifactId>minio</artifactId>
 			<version>8.5.7</version>
 		</dependency>
+		<!--加入 Knife4j 专门为 Spring Boot 3 打造的 Jakarta 启动器-->
+		<dependency>
+			<groupId>com.github.xiaoymin</groupId>
+			<artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+			<version>4.4.0</version>
+		</dependency>
 
 	</dependencies>
 
