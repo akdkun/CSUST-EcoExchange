@@ -4,6 +4,7 @@ import com.csust.eco.dto.UserLoginDTO;
 import com.csust.eco.dto.UserRegisterDTO;
 import com.csust.eco.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.csust.eco.vo.UserInfoVO;
 
 /**
  * <p>
@@ -15,5 +16,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface UserService extends IService<User> {
     void register(UserRegisterDTO registerDTO);
-    String login(UserLoginDTO loginDTO);
+    UserInfoVO login(UserLoginDTO loginDTO);
 }

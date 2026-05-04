@@ -8,6 +8,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.stream.Collectors;
+
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -19,7 +21,7 @@ public class GlobalExceptionHandler {
     public Result<Void> handleNotLoginException(NotLoginException e) {
         log.warn("拦截到未登录请求: {}", e.getMessage());
         // 401 状态码代表 Unauthorized (未授权)
-        return Result.error(401, "身份已过期或未登录，请先登录");
+        return Result.failed(ResultCode.UNAUTHORIZED);
     }
 
     /**
@@ -27,17 +29,13 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<Void> handleValidationException(MethodArgumentNotValidException e) {
-        BindingResult bindingResult = e.getBindingResult();
-        StringBuilder errorMessage = new StringBuilder();
+        // 使用 Stream 流式处理，提取所有错误信息并用逗号拼接
+        String errorMessage = e.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
+                .collect(Collectors.joining(", "));
 
-        // 遍历提取出你在 DTO 中写的具体 message (例如: "商品价格不能为空")
-        for (FieldError fieldError : bindingResult.getFieldErrors()) {
-            errorMessage.append(fieldError.getDefaultMessage()).append("; ");
-        }
-
-        log.warn("参数校验未通过: {}", errorMessage.toString());
-        // 400 状态码代表 Bad Request (客户端请求错误)
-        return Result.error(400, errorMessage.toString());
+        log.warn("参数校验未通过: {}", errorMessage);
+        return Result.failed(ResultCode.VALIDATE_FAILED, errorMessage);
     }
 
     /**
@@ -48,6 +46,17 @@ public class GlobalExceptionHandler {
         // 真实的报错堆栈只打印在后端日志中，供开发者排查
         log.error("系统内部发生未知异常: ", e);
         // 统一返回友好的模糊提示语，状态码 500 代表 Server Error
-        return Result.error(500, "系统繁忙，请稍后再试");
+        return Result.failed(ResultCode.FAILED, "系统繁忙，请稍后再试");
+    }
+
+    /**
+     * 4. 精准捕获: 业务逻辑异常 (BizException)
+     */
+    @ExceptionHandler(BizException.class)
+    public Result<Void> handleBizException(BizException e) {
+        // 业务异常属于正常流程的阻断，不需要打印 error 级别日志吓唬运维，打印 info 或 warn 即可
+        log.warn("业务处理被阻断: {}", e.getMessage());
+        // 将我们在 Service 层写的错误提示语，原封不动地返回给前端
+        return Result.failed(ResultCode.FAILED, e.getMessage());
     }
 }
