@@ -1,5 +1,6 @@
 package com.csust.eco.service.impl;
 
+import com.csust.eco.common.BizException;
 import com.csust.eco.service.OssService;
 import io.minio.*;
 import lombok.extern.slf4j.Slf4j;
@@ -69,7 +70,7 @@ public class OssServiceImpl implements OssService {
 
         } catch (Exception e) {
             log.error("File upload failed", e);
-            throw new RuntimeException("文件上传失败: " + e.getMessage());
+            throw new BizException("文件上传失败: " + e.getMessage());
         }
     }
 

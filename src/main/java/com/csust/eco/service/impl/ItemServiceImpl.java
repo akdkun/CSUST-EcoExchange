@@ -5,6 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.csust.eco.common.BizException;
 import com.csust.eco.dto.ItemPublishDTO;
 import com.csust.eco.dto.ItemQueryDTO;
 import com.csust.eco.entity.Item;
@@ -55,7 +56,7 @@ public class ItemServiceImpl extends ServiceImpl<ItemMapper, Item> implements It
 
         // 2. 防御性校验：如果商品不存在或已下架，应及时反馈
         if (item == null) {
-            throw new RuntimeException("商品已不存在");
+            throw new BizException("商品已不存在");
         }
 
         // 3. 转换 VO

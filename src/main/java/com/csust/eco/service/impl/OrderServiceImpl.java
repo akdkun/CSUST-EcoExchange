@@ -2,6 +2,7 @@ package com.csust.eco.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.csust.eco.common.BizException;
 import com.csust.eco.dto.OrderCreateDTO;
 import com.csust.eco.entity.Item;
 import com.csust.eco.entity.Orders;
@@ -61,13 +62,13 @@ public class OrderServiceImpl extends ServiceImpl<OrdersMapper, Orders> implemen
         Item item = itemMapper.selectById(itemId);
 
         if (item == null) {
-            throw new RuntimeException("商品不存在");
+            throw new BizException("商品不存在");
         }
         if (item.getStock() < 1 || item.getStatus() != 0) {
-            throw new RuntimeException("手慢一步, 商品已售出或下架");
+            throw new BizException("手慢一步, 商品已售出或下架");
         }
         if (item.getSellerId().equals(buyerId)) {
-            throw new RuntimeException("不能购买自己发布的商品");
+            throw new BizException("不能购买自己发布的商品");
         }
 
         // 乐观锁扣减库存
@@ -75,7 +76,7 @@ public class OrderServiceImpl extends ServiceImpl<OrdersMapper, Orders> implemen
         item.setStatus((byte) 1);
         int updatedRows = itemMapper.updateById(item);
         if (updatedRows == 0) {
-            throw new RuntimeException("扣减库存失败");
+            throw new BizException("扣减库存失败");
         }
 
         Orders order = new Orders();

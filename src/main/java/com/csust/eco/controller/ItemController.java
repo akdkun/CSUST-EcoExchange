@@ -10,6 +10,7 @@ import com.csust.eco.vo.ItemDetailVO;
 import com.csust.eco.vo.ItemListVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -25,9 +26,9 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "2. 商品导购与发布模块", description = "涵盖 C 端用户的商品浏览、分页查询以及卖家的商品发布逻辑")
 @RestController
 @RequestMapping("/api/item")
+@RequiredArgsConstructor
 public class ItemController {
-    @Autowired
-    private ItemService itemService;
+    final private ItemService itemService;
 
     @Operation(summary = "发布二手商品", description = "[需登录]卖家发布商品, 包含主图和详情图数据")
     @PostMapping("/publish")

@@ -6,6 +6,7 @@ import com.csust.eco.dto.OrderCreateDTO;
 import com.csust.eco.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,10 +25,10 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "3. 交易与订单模块", description = "核心交易引擎，包含高并发防超卖与延迟队列逻辑")
 @RestController
 @RequestMapping("/api/orders")
+@RequiredArgsConstructor
 public class OrdersController {
 
-    @Autowired
-    private OrderService orderService;
+    final private OrderService orderService;
 
     @Operation(summary = "创建订单 (下单)", description = "[需登录] 买家发起抢购请求. 系统采用 Redisson 分布式锁确保单件商品不会被重复售卖(防超卖),下单成功后返回订单物理主键 ID, 并自动抛入延迟队列进行 15 分钟倒计时.")
     @PostMapping("/create")

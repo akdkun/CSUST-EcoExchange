@@ -9,6 +9,7 @@ import com.csust.eco.service.UserService;
 import com.csust.eco.vo.UserInfoVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -27,10 +28,10 @@ import java.util.stream.Collectors;
 @Tag(name = "1. 用户认证模块", description = "提供用户注册、登录、会话获取及基础信息管理")
 @RestController
 @RequestMapping("/api/user")
+@RequiredArgsConstructor
 public class UserController {
 
-    @Autowired
-    private UserService userService;
+    final private UserService userService;
 
     @Operation(summary = "用户注册", description = "[游客可用]校验学号唯一性, 使用 MD5 加密存储密码")
     @PostMapping("/register")
@@ -44,16 +45,5 @@ public class UserController {
     public Result<UserInfoVO> login(@Validated @RequestBody UserLoginDTO loginDTO) {
         UserInfoVO userInfo = userService.login(loginDTO);
         return Result.success(userInfo);
-    }
-
-    @Operation(summary = "获取所有用户列表 (测试/后台用)", description = "[需登录] 查询全量用户, 已通过 UserInfoVO 阻断密码等敏感字段越权泄露")
-    @GetMapping("/list")
-    public Result<List<UserInfoVO>> list() {
-        // 修复: 彻底阻断 Entity 暴露, 使用 VO 替代
-        List<User> list = userService.list();
-        List<UserInfoVO> voList = list.stream()
-                .map(user -> BeanUtil.copyProperties(user, UserInfoVO.class))
-                .collect(Collectors.toList());
-        return Result.success(voList);
     }
 }

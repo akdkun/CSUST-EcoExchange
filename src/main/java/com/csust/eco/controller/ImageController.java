@@ -6,6 +6,7 @@ import com.csust.eco.service.OssService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,10 +22,10 @@ import org.springframework.web.multipart.MultipartFile;
 @Tag(name = "4. 基础设施与存储模块", description = "提供全局图片上传与 OSS 调度服务")
 @RestController
 @RequestMapping("/api/images")
+@RequiredArgsConstructor
 public class ImageController {
 
-    @Autowired
-    private OssService ossService;
+    final private OssService ossService;
 
     @Operation(summary = "上传图片资源", description = "[需登录]支持全局图片上传, 自动返回对象存储的绝对路径 URL.限制大小 5MB.")
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -43,7 +44,7 @@ public class ImageController {
 
         // 3. (可选扩展) 校验文件后缀是否为图片格式
         String originalFilename = file.getOriginalFilename();
-        if (originalFilename != null && !originalFilename.matches(".*\\.(jpg|jpeg|png|webp|gif)$")) {
+        if (originalFilename != null && !originalFilename.toLowerCase().matches(".*\\.(jpg|jpeg|png|webp|gif)$")) {
             return Result.failed(ResultCode.VALIDATE_FAILED, "仅支持 jpg, jpeg, png, webp, gif 格式的图片");
         }
 

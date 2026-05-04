@@ -1,6 +1,7 @@
 package com.csust.eco.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -9,9 +10,10 @@ import jakarta.validation.constraints.Size;
 @Schema(description = "用户注册表单入参")
 public class UserRegisterDTO {
 
-    @Schema(description = "学号 (长度 8-20 位)", example = "2021000101", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "学号 (长度 8-20 位)", example = "202100010101", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "学号不能为空")
     @Size(min = 8, max = 20, message = "学号长度异常")
+    @Pattern(regexp = "^\\d{8,20}$", message = "学号格式不正确，必须为纯数字")
     private String studentId;
 
     @Schema(description = "登录密码 (长度 6-20 位)", example = "csust123456", requiredMode = Schema.RequiredMode.REQUIRED)

@@ -4,6 +4,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.csust.eco.common.BizException;
 import com.csust.eco.dto.UserLoginDTO;
 import com.csust.eco.dto.UserRegisterDTO;
 import com.csust.eco.entity.User;
@@ -31,7 +32,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(User::getStudentId, registerDTO.getStudentId());
         if (this.count(queryWrapper) > 0) {
-            throw new RuntimeException("该学号已注册"); // 暂时抛出 RuntimeException，后续可优化为自定义业务异常
+            throw new BizException("该学号已注册");
         }
 
         // 2. 密码加密 (明文密码 -> MD5)
@@ -56,13 +57,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User user = this.getOne(queryWrapper);
 
         if (user == null) {
-            throw new RuntimeException("用户不存在");
+            throw new BizException("用户不存在");
         }
 
         // 2. 校验密码
         String inputEncrypted = DigestUtil.md5Hex(loginDTO.getPassword());
         if (!user.getPassword().equals(inputEncrypted)) {
-            throw new RuntimeException("密码错误");
+            throw new BizException("密码错误");
         }
 
         // 3. 密码正确，执行 Sa-Token 登录

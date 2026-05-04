@@ -1,10 +1,7 @@
 package com.csust.eco.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.util.List;
@@ -23,6 +20,7 @@ public class ItemPublishDTO {
     @Schema(description = "商品价格", example = "1500.00", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "商品价格不能为空")
     @DecimalMin(value = "0.01", message = "价格必须大于0")
+    @Digits(integer = 8, fraction = 2, message = "价格格式不正确，最多允许两位小数")
     private BigDecimal price;
 
     @Schema(description = "商品主图URL (建议调用图片上传接口获取)", example = "http://127.0.0.1:9000/eco-exchange/2026/04/28/keyboard_main.jpg", requiredMode = Schema.RequiredMode.REQUIRED)
