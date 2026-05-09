@@ -8,7 +8,7 @@ public enum ResultCode {
     VALIDATE_FAILED(400, "参数检验失败"),
     UNAUTHORIZED(401, "暂未登录或有效身份已过期"),
     FORBIDDEN(403, "没有相关权限"),
-    FAILED(500, "系统内部异常"),
+    FAILED(600, "系统内部异常"),
 
     // 业务相关状态码 (自定义扩展)
     USER_NOT_EXIST(20001, "用户不存在"),

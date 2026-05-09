@@ -1,6 +1,7 @@
 package com.csust.eco.service;
 
 import com.csust.eco.dto.OrderCreateDTO;
+import com.csust.eco.entity.Item;
 import com.csust.eco.entity.Orders;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -25,7 +26,12 @@ public interface OrderService extends IService<Orders> {
     Long createOrderInTx(Long itemId, Long buyerId);
 
     /**
-     * 超时自动取消订单并回滚库存
+     * 用户取消订单
      */
-    void cancelOrder(Long orderId);
+    void cancelOrder(Long orderId, Long buyerId);
+
+    /**
+     * 系统对超时订单进行回滚
+     */
+    void cancelOrderSystem(Long orderId);
 }

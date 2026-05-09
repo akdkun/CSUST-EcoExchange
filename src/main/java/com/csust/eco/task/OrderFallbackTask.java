@@ -6,16 +6,15 @@ import com.csust.eco.mapper.OrdersMapper;
 import com.csust.eco.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-/**
- * 订单兜底定时任务
- * 专治各种因为宕机、重启、网络抖动导致的 Redisson 消息丢失问题
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -23,44 +22,63 @@ public class OrderFallbackTask {
 
     private final OrdersMapper ordersMapper;
     private final OrderService orderService;
+    private final RedissonClient redissonClient; // 引入 Redisson 解决分布式调度问题
 
-    /**
-     * @Scheduled(cron = "0 0 2 * * ?") 代表每天凌晨 2 点执行一次
-     * 这里为了防止白天高峰期占用数据库 IO，我们选择在半夜扫盘。
-     * 如果你希望兜底更及时，可以改成 fixedDelay = 1000 * 60 * 30 (每 30 分钟扫一次)
-     */
     @Scheduled(cron = "0 0 2 * * ?")
     public void clearZombieOrders() {
-        log.info("====== 开始执行定时兜底任务：清理超时未支付的僵尸订单 ======");
+        // 利用分布式锁保证集群环境下只有一个节点执行扫表
+        String lockKey = "eco:task:lock:zombie_orders";
+        RLock lock = redissonClient.getLock(lockKey);
 
-        // 1. 划定时间边界：当前时间往前推 30 分钟
-        // 💡 架构师灵魂考点：为什么是 30 分钟而不是 15 分钟？
-        // 因为正常的 Redisson 延迟队列是 15 分钟触发。我们要留出足够的“缓冲期”，
-        // 绝对不能抢在 Redisson 之前去取消订单，只去查那些“绝对已经死透了”的异常订单。
-        LocalDateTime timeBoundary = LocalDateTime.now().minusMinutes(30);
+        try {
+            // 尝试获取锁，等待 0 秒，任务锁 10 分钟后自动释放防止死锁
+            if (!lock.tryLock(0, 10, TimeUnit.MINUTES)) {
+                log.info("兜底任务已在集群其他节点执行，当前节点跳过.");
+                return;
+            }
 
-        // 2. 查出所有状态为 0 (待支付)，且创建时间在 30 分钟以前的异常记录
-        LambdaQueryWrapper<Orders> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Orders::getStatus, (byte) 0)
-                .le(Orders::getCreateTime, timeBoundary);
+            log.info("====== 节点获取分布式锁成功，开始执行定时兜底任务 ======");
+            LocalDateTime timeBoundary = LocalDateTime.now().minusMinutes(30);
 
-        List<Orders> zombieOrders = ordersMapper.selectList(queryWrapper);
+            // 分批处理逻辑：每次最多查 500 条，直到处理完毕
+            int batchSize = 500;
+            while (true) {
+                LambdaQueryWrapper<Orders> queryWrapper = new LambdaQueryWrapper<>();
+                queryWrapper.eq(Orders::getStatus, (byte) 0)
+                        .le(Orders::getCreateTime, timeBoundary)
+                        // 核心修复 2：物理级别限制单次拉取数量，彻底杜绝 OOM 风险
+                        .last("LIMIT " + batchSize);
 
-        if (zombieOrders.isEmpty()) {
-            log.info("兜底任务完成，系统健康，未发现僵尸订单。");
-            return;
-        }
+                List<Orders> zombieOrders = ordersMapper.selectList(queryWrapper);
 
-        log.warn("警报！发现 {} 笔僵尸订单，可能是前期宕机导致，开始强制回滚！", zombieOrders.size());
+                if (zombieOrders.isEmpty()) {
+                    log.info("兜底任务处理完成，无更多僵尸订单.");
+                    break; // 退出循环
+                }
 
-        // 3. 遍历回滚
-        for (Orders order : zombieOrders) {
-            try {
-                // 直接复用你写好的 Service 层逻辑，那里已经有了完善的库存回滚和状态机保护
-                orderService.cancelOrder(order.getId());
-                log.info("僵尸订单 {} 强制回滚成功", order.getId());
-            } catch (Exception e) {
-                log.error("僵尸订单 {} 强制回滚失败，需人工介入: {}", order.getId(), e.getMessage());
+                log.warn("发现 {} 笔僵尸订单，开始分批强制回滚！", zombieOrders.size());
+
+                for (Orders order : zombieOrders) {
+                    try {
+                        orderService.cancelOrderSystem(order.getId());
+                    } catch (Exception e) {
+                        log.error("订单 {} 强制回滚失败: {}", order.getId(), e.getMessage());
+                    }
+                }
+
+                // 如果本次查出的数据少于 batchSize，说明已经是最后一批了，直接退出
+                if (zombieOrders.size() < batchSize) {
+                    break;
+                }
+            }
+
+        } catch (InterruptedException e) {
+            log.warn("兜底任务线程被中断", e);
+            Thread.currentThread().interrupt();
+        } finally {
+            // 确保任务执行完毕后释放分布式锁
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
             }
         }
     }

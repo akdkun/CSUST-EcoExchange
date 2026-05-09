@@ -50,6 +50,27 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 补充: 捕获 GET 请求参数校验异常
+     */
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    public Result<Void> handleConstraintViolationException(jakarta.validation.ConstraintViolationException e) {
+        String errorMessage = e.getConstraintViolations().stream()
+                .map(jakarta.validation.ConstraintViolation::getMessage)
+                .collect(Collectors.joining(", "));
+        log.warn("GET请求参数校验未通过: {}", errorMessage);
+        return Result.failed(ResultCode.VALIDATE_FAILED, errorMessage);
+    }
+
+    /**
+     * 补充: 捕获 Spring MVC 框架的常见请求错误 (此处以 MethodNotSupported 为例)
+     */
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public Result<Void> handleMethodNotSupportedException(org.springframework.web.HttpRequestMethodNotSupportedException e) {
+        log.warn("请求方法不支持: {}", e.getMessage());
+        return Result.failed(ResultCode.FAILED, "请求方式错误, 请检查前端调用");
+    }
+
+    /**
      * 4. 精准捕获: 业务逻辑异常 (BizException)
      */
     @ExceptionHandler(BizException.class)

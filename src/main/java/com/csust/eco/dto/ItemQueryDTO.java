@@ -3,6 +3,7 @@ package com.csust.eco.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
@@ -19,5 +20,6 @@ public class ItemQueryDTO {
     private Integer pageSize = 10;
 
     @Schema(description = "搜索关键字(支持对商品标题和描述进行模糊匹配)", example = "高数")
+    @Size(max = 50, message = "搜索关键字过长, 请精简搜索内容")
     private String keyword;
 }

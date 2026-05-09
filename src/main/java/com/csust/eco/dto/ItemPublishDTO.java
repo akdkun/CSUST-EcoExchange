@@ -29,5 +29,5 @@ public class ItemPublishDTO {
 
     @Schema(description = "商品详情图URL数组 (最多允许9张)", example = "[\"http://127.0.0.1:9000/eco-exchange/2026/04/28/detail1.jpg\", \"http://127.0.0.1:9000/eco-exchange/2026/04/28/detail2.jpg\"]")
     @Size(max = 9, message = "详情图最多只能上传9张")
-    private List<String> detailImages;
+    private List<@NotBlank(message = "图片URL不能为空") @Size(max = 255, message = "图片URL长度异常") String> detailImages;
 }

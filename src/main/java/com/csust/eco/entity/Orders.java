@@ -72,4 +72,14 @@ public class Orders implements Serializable {
      */
     @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
+
+    /**
+     * 逻辑删除标志: 0-未删除, 1-已删除
+     * @TableLogic 注解是核心！有了它：
+     * 1. 调用 deleteById 时，底层会变成：UPDATE table SET is_deleted = 1 WHERE id = ?
+     * 2. 调用 selectById 或 selectList 时，底层会自动拼接：WHERE is_deleted = 0
+     */
+    @TableLogic
+    @TableField("is_deleted")
+    private Byte isDeleted;
 }

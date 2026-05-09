@@ -1,6 +1,8 @@
 package com.csust.eco.service.impl;
 
 import cn.hutool.core.util.IdUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.csust.eco.common.BizException;
 import com.csust.eco.dto.OrderCreateDTO;
@@ -11,6 +13,8 @@ import com.csust.eco.mapper.OrdersMapper;
 import com.csust.eco.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RBlockingQueue;
+import org.redisson.api.RDelayedQueue;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
@@ -39,7 +43,7 @@ public class OrderServiceImpl extends ServiceImpl<OrdersMapper, Orders> implemen
             // 尝试获取锁, 0秒等待, 触发看门狗机制
             isLocked = lock.tryLock(0, -1, TimeUnit.SECONDS);
             if (!isLocked) {
-                throw new RuntimeException("当前商品抢购人数过多, 请重试");
+                throw new BizException("当前商品抢购人数过多, 请重试");
             }
 
             // 获取 AOP 代理对象, 保护底层事务
@@ -48,7 +52,7 @@ public class OrderServiceImpl extends ServiceImpl<OrdersMapper, Orders> implemen
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("系统繁忙, 下单失败");
+            throw new BizException("系统繁忙, 下单失败");
         } finally {
             if (isLocked && lock.isHeldByCurrentThread()) {
                 lock.unlock();
@@ -71,12 +75,18 @@ public class OrderServiceImpl extends ServiceImpl<OrdersMapper, Orders> implemen
             throw new BizException("不能购买自己发布的商品");
         }
 
-        // 乐观锁扣减库存
-        item.setStock(0);
-        item.setStatus((byte) 1);
-        int updatedRows = itemMapper.updateById(item);
+        // CAS 乐观锁扣减 (Compare And Swap)
+        // 底层 SQL: UPDATE item SET stock=0, status=1 WHERE id=? AND stock=1 AND status=0
+        LambdaUpdateWrapper<Item> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(Item::getId, itemId)
+                .eq(Item::getStock, 1)      // 比较: 只有库存在此刻仍为 1 时
+                .eq(Item::getStatus, 0)     // 比较: 且状态仍为 0 (待售) 时
+                .set(Item::getStock, 0)     // 交换: 扣减库存
+                .set(Item::getStatus, 1);   // 交换: 锁定状态
+
+        int updatedRows = itemMapper.update(null, updateWrapper);
         if (updatedRows == 0) {
-            throw new BizException("扣减库存失败");
+            throw new BizException("手慢一步, 商品已被抢走");
         }
 
         Orders order = new Orders();
@@ -85,15 +95,12 @@ public class OrderServiceImpl extends ServiceImpl<OrdersMapper, Orders> implemen
         order.setItemId(itemId);
         order.setAmount(item.getPrice());
         order.setStatus((byte) 0);
-        order.setCreateTime(LocalDateTime.now());
 
         this.save(order);
 
-        // --- V2.0 新增: 将订单抛入延迟队列 ---
-        org.redisson.api.RBlockingQueue<Long> blockingQueue = redissonClient.getBlockingQueue("eco:queue:order:cancel");
-        org.redisson.api.RDelayedQueue<Long> delayedQueue = redissonClient.getDelayedQueue(blockingQueue);
-
-        // 物理逻辑：告诉 Redis，15 分钟后，把这个 order.getId() 从 delayedQueue 转移到 blockingQueue 中去
+        // 将订单抛入延迟队列
+        RBlockingQueue<Long> blockingQueue = redissonClient.getBlockingQueue("eco:queue:order:cancel");
+        RDelayedQueue<Long> delayedQueue = redissonClient.getDelayedQueue(blockingQueue);
         delayedQueue.offer(order.getId(), 15, TimeUnit.MINUTES);
         log.info("订单 {} 已加入延迟队列, 15分钟后若未支付将自动回滚", order.getId());
 
@@ -103,31 +110,74 @@ public class OrderServiceImpl extends ServiceImpl<OrdersMapper, Orders> implemen
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void cancelOrder(Long orderId) {
-        // 1. 查询订单当前真实状态
-        Orders order = this.getById(orderId);
+    public void cancelOrder(Long orderId, Long buyerId) {
+        // 1. 极致轻量的投影查询：只拿我们需要的回滚凭据 (itemId)，拒绝使用 SELECT *
+        Orders order = this.getOne(new LambdaQueryWrapper<Orders>()
+                .select(Orders::getItemId)
+                .eq(Orders::getId, orderId));
+
         if (order == null) {
-            return;
+            throw new BizException("订单不存在");
         }
 
-        // 2. 幂等性防御：只有在 "0-待支付" 状态下才能取消
-        // 如果买家在第 14 分钟付款了，状态变成了 1，这里就直接放行，不做处理
-        if (order.getStatus() != 0) {
-            log.info("订单 {} 状态非待支付 (当前状态:{}), 无需取消", orderId, order.getStatus());
-            return;
+        // 2. 核心原子写入与鉴权：将身份验证与状态流转合并为一条物理 SQL
+        // 对应底层: UPDATE orders SET status = 4 WHERE id = ? AND buyer_id = ? AND status = 0
+        LambdaUpdateWrapper<Orders> orderUpdateWrapper = new LambdaUpdateWrapper<>();
+        orderUpdateWrapper.eq(Orders::getId, orderId)
+                .eq(Orders::getBuyerId, buyerId) // 物理级水平越权防御
+                .eq(Orders::getStatus, 0)        // 物理级状态机防御 (只允许取消待支付)
+                .set(Orders::getStatus, 4);
+
+        int orderRows = this.baseMapper.update(null, orderUpdateWrapper);
+        if (orderRows == 0) {
+            // 如果影响行数为 0，意味着在极短的时间窗口内，状态被其他线程改了，或者当前用户根本不是买家
+            throw new BizException("订单取消失败：权限不足或订单状态已发生变更");
         }
 
-        // 3. 物理回滚：恢复商品状态和库存
-        Item item = itemMapper.selectById(order.getItemId());
-        if (item != null) {
-            item.setStock(1);
-            item.setStatus((byte) 0); // 0-待售
-            itemMapper.updateById(item);
-            log.info("订单 {} 超时未支付, 商品 {} 库存已物理回滚", orderId, item.getId());
-        }
+        // 3. 物理回滚商品库存 (订单取消成功后，强关联的库存必须回滚)
+        rollbackItemStock(order.getItemId());
+    }
 
-        // 4. 更新订单状态为 "4-已取消"
-        order.setStatus((byte) 4);
-        this.updateById(order);
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void cancelOrderSystem(Long orderId) {
+        // 1. 同样获取投影
+        Orders order = this.getOne(new LambdaQueryWrapper<Orders>()
+                .select(Orders::getItemId)
+                .eq(Orders::getId, orderId));
+
+        if (order == null) return;
+
+        // 2. 系统级自动取消，无需校验 buyerId，仅严格校验状态机
+        LambdaUpdateWrapper<Orders> orderUpdateWrapper = new LambdaUpdateWrapper<>();
+        orderUpdateWrapper.eq(Orders::getId, orderId)
+                .eq(Orders::getStatus, 0) // 确保只有超时未支付的才会被系统取消
+                .set(Orders::getStatus, 4);
+
+        int orderRows = this.baseMapper.update(null, orderUpdateWrapper);
+        if (orderRows > 0) {
+            // 只有当 UPDATE 真实发生了修改，才去执行回滚，防止并发环境下的重复回滚
+            rollbackItemStock(order.getItemId());
+            log.info("系统已成功执行超时订单自动回滚: {}", orderId);
+        }
+    }
+
+    /**
+     * 抽离公共的库存回滚原子操作
+     */
+    private void rollbackItemStock(Long itemId) {
+        LambdaUpdateWrapper<Item> itemUpdateWrapper = new LambdaUpdateWrapper<>();
+        itemUpdateWrapper.eq(Item::getId, itemId)
+                .eq(Item::getStatus, 1)  // 核心修复：只有商品处于"1-交易中"时，才允许回滚！
+                .set(Item::getStock, 1)
+                .set(Item::getStatus, 0); // 恢复为"0-待售"
+
+        int rows = itemMapper.update(null, itemUpdateWrapper);
+
+        if (rows == 0) {
+            // 如果影响行数为 0，说明商品状态已经被其他业务（如卖家强制下架、后台封禁等）改变
+            // 此时不应强行恢复为待售，尊重现有状态即可，只需记录一条日志
+            log.warn("商品 {} 库存回滚被阻断：当前状态已非'交易中'，放弃恢复待售状态", itemId);
+        }
     }
 }
